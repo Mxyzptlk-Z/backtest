@@ -1,16 +1,16 @@
 import numpy as np
 import pandas as pd
 import os
-import datetime
+from tqdm import tqdm
 from Util import Util
 
 class AlphaBase(Util):
 
-    def __init__(self, index_code, start_date, end_date, max_stocks, date_rule):
+    def __init__(self, index_code, start_date, end_date):
         """
         This method initializes the parameters entering the AlphaBase object.
         """
-        super().__init__(index_code, start_date, end_date, max_stocks, date_rule)
+        Util.__init__(self,index_code, start_date, end_date)
         if os.path.exists(self.IDX_PATH):
             index = self.load_data('index.pkl')
             component = self.load_data('component.pkl')
@@ -28,27 +28,6 @@ class AlphaBase(Util):
         This method returns a string representation of an AlphaBase object.
         """
         return 'alpha_research'
-    
-    def alpha_rule(self, date, stock):
-        """
-        This method defines the alpha rule (calculation of alpha) for each day.
-        """
-        # pe = self.acct[stock].loc[date, 'pe_ttm']
-        data = self.component[stock]
-        wms = ((data[date-datetime.timedelta(days=self.window):date]['hfq_high'].max() - data.loc[date]['hfq_close']) / (data[date-datetime.timedelta(days=self.window):date]['hfq_high'].max() - data[date-datetime.timedelta(days=self.window):date]['hfq_low'].min())) * 100
-        return -float(wms)
-    
-    def apply_alpha(self):
-        """
-        This method applies the alpha rule to the whole backtest period and generates the score.
-        """
-        stocks = list(self.component.keys())
-        dates = self.index[self.start_date : self.end_date].index
-        score = pd.DataFrame(columns = stocks, index = dates)
-        for date in dates:
-            for stock in stocks:
-                score.loc[date, stock] = self.alpha_rule(date, stock)
-        return score, self.index, self.component, self.dividend
 
     def factor_mining(self):
         """
@@ -63,17 +42,13 @@ class AlphaBase(Util):
         wms = ((wms - wms.rolling(self.timestamp).min()) / (wms.rolling(self.timestamp).max() - wms.rolling(self.timestamp).min()))[self.start_date:self.end_date]
         roc = ((roc - roc.rolling(self.timestamp).min()) / (roc.rolling(self.timestamp).max() - roc.rolling(self.timestamp).min()))[self.start_date:self.end_date]
         bias = ((bias - bias.rolling(self.timestamp).min()) / (bias.rolling(self.timestamp).max() - bias.rolling(self.timestamp).min()))[self.start_date:self.end_date]
-        
-        # pe = ((pe - pe.min()) / (pe.max() - pe.min()))[self.start_date:self.end_date]
-        # wms = ((wms - wms.min()) / (wms.max() - wms.min()))[self.start_date:self.end_date]
-        # roc = ((roc - roc.min()) / (roc.max() - roc.min()))[self.start_date:self.end_date]
-        # bias = ((bias - bias.min()) / (bias.max() - bias.min()))[self.start_date:self.end_date]
 
-        # pe = ((pe - pe.rolling(200).mean()) / pe.rolling(200).std())[self.start_date:self.end_date]
-        # wms = ((wms - wms.rolling(200).mean()) / wms.rolling(200).std())[self.start_date:self.end_date]
-        # roc = ((roc - roc.rolling(200).mean()) / roc.rolling(200).std())[self.start_date:self.end_date]
-        # bias = ((bias - bias.rolling(200).mean()) / bias.rolling(200).std())[self.start_date:self.end_date]
-        # score = - 0.0415 * pe + 0.1512 * wms - 0.1427 * roc - 0.6652 * bias
-        score = pe - (wms + roc + bias)
+        # n = self.window
+        # ncskew = pd.DataFrame({tic: (- (n * (n-1)) ** 1.5 * data['20211201':self.end_date]['hfq_close'].rolling(n).apply(lambda x: ((x - x.mean()) ** 3).sum())) / ((n-1) * (n-2) * data['20211201':self.end_date]['hfq_close'].rolling(n).apply(lambda x: ((x - x.mean()) ** 2).sum() ** 1.5)) for tic, data in tqdm(self.component.items())})
+        # duvol = pd.DataFrame({tic: np.log((data['hfq_close'].rolling(n).apply(lambda x: len(x[x>x.mean()])) - 1) * data['hfq_close'].rolling(n).apply(lambda x: ((x[x<x.mean()] - x.mean()) ** 2).sum()) / (data['hfq_close'].rolling(n).apply(lambda x: len(x[x<x.mean()])) - 1) * data['hfq_close'].rolling(n).apply(lambda x: ((x[x>x.mean()] - x.mean()) ** 2).sum())) for tic, data in tqdm(self.component.items())})
+        # ncskew = ((ncskew - ncskew.rolling(self.timestamp).min()) / (ncskew.rolling(self.timestamp).max() - ncskew.rolling(self.timestamp).min()))[self.start_date:self.end_date]
+        # duvol = ((duvol - duvol.rolling(self.timestamp).min()) / (duvol.rolling(self.timestamp).max() - duvol.rolling(self.timestamp).min()))[self.start_date:self.end_date]
+        
+        score = 0.0415 * pe - 0.1512 * wms + 0.1427 * roc + 0.6652 * bias
     
         return score, self.index, self.component, self.dividend

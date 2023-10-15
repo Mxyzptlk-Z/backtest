@@ -3,6 +3,8 @@ import numpy as np
 import tushare as ts
 import datetime
 import holidays
+import chinese_calendar as calendar
+from dateutil.relativedelta import relativedelta
 import os
 import pickle
 from tqdm import tqdm
@@ -10,7 +12,7 @@ from Client import Client
 
 class Util(Client):
     
-    def __init__(self, index_code, start_date, end_date, max_stocks, date_rule):
+    def __init__(self, index_code, start_date, end_date):
         """
         This method initializes the parameters entering the Util object.
         """
@@ -18,12 +20,10 @@ class Util(Client):
         self.index_code = index_code
         self.start_date = start_date
         self.end_date = end_date
-        self.max_stocks = max_stocks
-        self.date_rule = self.week_rule(date_rule)
         self.PATH = './data cache'
         self.IDX_PATH = os.path.join(self.PATH, index_code.replace('.', '_'))
 
-        token = '7c9670aec368eaf509ab283a3526853ba257993895389b2ded0e62f9'
+        token = 'c336245e66e2882632285493a7d0ebc23a2fbb7392b74e4b3855a222'
         ts.set_token(token)
         self.pro = ts.pro_api()
     
@@ -47,7 +47,7 @@ class Util(Client):
         This method loads data cache from the current directory.
         """
         with open(os.path.join(self.IDX_PATH, filename), 'rb') as f:
-            data = pickle.load(f)
+            data = pickle.load(f)    # loading pickle requires the same pandas version as saving
         return data[0]
     
     def fetch_data(self):
@@ -119,6 +119,8 @@ class Util(Client):
                 query = query[query['ex_date'].notna()]
                 query['ex_date'] = pd.to_datetime(query['ex_date'])
                 dividend[ticker] = query[::-1]
+            # normally this takes less than 1 min to fetch, but the api only allows 500 lookup / min
+            # solution: import time, time.sleep(0.1)
             self.save_data('dividend.pkl', dividend)
         
         return index, component, acct, dividend
@@ -153,7 +155,8 @@ class Util(Client):
                 query = pd.merge(pd.merge(real, qfq, how='outer', on='trade_date'), hfq, how='outer', on='trade_date')
                 query.index = pd.to_datetime(query['trade_date'])
                 query.drop(['ts_code', 'trade_date'], axis=1, inplace=True)
-                component.update({ticker: comp.append(query[::-1])})
+                # component.update({ticker: comp.append(query[::-1])})
+                component.update({ticker: pd.concat([comp, query[::-1]])})
             
             # update accounting data
             print('Updating accounting data:')
@@ -162,7 +165,8 @@ class Util(Client):
                 query = self.pro.daily_basic(ts_code = ticker, start_date = acctg_start, end_date = TODAY.strftime('%Y%m%d'), fields='ts_code, trade_date, turnover_rate, volume_ratio, pe, pe_ttm, pb, ps, ps_ttm, dv_ratio, dv_ttm, total_share, float_share, total_mv, circ_mv')
                 query.index = pd.to_datetime(query['trade_date'])
                 query.drop(['ts_code', 'trade_date'], axis=1, inplace=True)
-                acct.update({ticker: acctg.append(query[::-1])})
+                # acct.update({ticker: acctg.append(query[::-1])})
+                acct.update({ticker: pd.concat([acctg, query[::-1]])})
             
             # update dividend data
             # print('Updating dividend data:')
@@ -182,52 +186,42 @@ class Util(Client):
             pass
             
         return index, component, acct
-
-    # def pre_div_adjustment(self, df):
-    #     info = df[df['ex_date'].notna()][::-1]
-    #     df['pre_adj_factor'] = 1
-    #     for ex_date in info.index:
-    #         pre_close = (df.loc[ex_date, 'close'] - df.loc[ex_date, 'cash_div']) / (1 + df.loc[ex_date, 'stk_div'])
-    #         adj_factor = pre_close / df.loc[ex_date, 'close']
-    #         df.loc[:ex_date - datetime.timedelta(days=1), 'pre_adj_factor'] = df.loc[:ex_date - datetime.timedelta(days=1), 'pre_adj_factor'] * adj_factor
-    #     df['pre_adj_close'] = df['close'] * df['pre_adj_factor']
-    #     return df
-
-    # def post_div_adjustment(self, df):
-    #     info = df[df['ex_date'].notna()]
-    #     df['post_adj_factor'] = 1
-    #     for ex_date in info.index:
-    #         pre_close = (df.loc[ex_date, 'close'] - df.loc[ex_date, 'cash_div']) / (1 + df.loc[ex_date, 'stk_div'])
-    #         adj_factor = df.loc[ex_date, 'close'] / pre_close
-    #         # pre_close = df.loc[ex_date, 'close'] * (1 + df.loc[ex_date, 'stk_div']) + df.loc[ex_date, 'cash_div']
-    #         # adj_factor = pre_close / df.loc[ex_date, 'close']
-    #         df.loc[ex_date + datetime.timedelta(days=1):, 'post_adj_factor'] = df.loc[ex_date + datetime.timedelta(days=1):, 'post_adj_factor'] * adj_factor
-    #     df['post_adj_close'] = df['close'] * df['post_adj_factor']
-    #     return df
-
-    # def div_adjustment(self, df):
-    #     return self.post_div_adjustment(self.pre_div_adjustment(df))
-
-    def week_rule(self, weekday=4):
-        DAY_OF_WEEK = ['MON', 'TUE', 'WED', 'THU', 'FRI']
-        if weekday not in [1, 2, 3, 4, 5]:
-            print('ERROR! Please input a number ranging from 1 to 5.')
-        elif weekday == 1:
-            return 'W-' + DAY_OF_WEEK[weekday+3]
-        else:
-            return 'W-' + DAY_OF_WEEK[weekday-2]
     
-    def next_business_day(self, dates):
+    def period_delta(self, freq):
         ONE_DAY = datetime.timedelta(days=1)
-        HOLIDAYS_CN = holidays.CN()
-        next_bus_day = []
-        for date in dates:
-            next_day = date + ONE_DAY
-            while next_day.weekday() in holidays.WEEKEND or next_day in HOLIDAYS_CN:
-                next_day += ONE_DAY
-            next_bus_day.append(next_day)
-        return pd.DatetimeIndex(next_bus_day)
+        ONE_WEEK = relativedelta(weeks=1)
+        TWO_WEEK = relativedelta(weeks=2)
+        ONE_MONTH = relativedelta(months=1)
+        if freq == 'D':
+            timedelta = ONE_DAY
+        elif freq == 'W':
+            timedelta = ONE_WEEK
+        elif freq == '2W':
+            timedelta = TWO_WEEK
+        elif freq == 'M':
+            timedelta = ONE_MONTH
+        return timedelta
+
+    def next_trade_day(self, date):
+        ONE_DAY = datetime.timedelta(days=1)
+        next_trade_day = date + ONE_DAY
+        while next_trade_day.weekday() in holidays.WEEKEND or calendar.is_holiday(next_trade_day):
+            next_trade_day += ONE_DAY
+        return next_trade_day
+
+    def next_trade_dates(self, dates):
+        return pd.DatetimeIndex([self.next_trade_day(date) for date in dates])
     
+    def exist_holiday_except_weekend(self, start_date, end_date):
+        ONE_DAY = datetime.timedelta(days=1)
+        next_day = start_date + ONE_DAY
+        while next_day <= end_date:
+            if next_day.weekday() not in holidays.WEEKEND and calendar.is_holiday(next_day):
+                return True
+            else:
+                next_day += ONE_DAY
+        return False
+
     def annual_rate(self, ret):
         return (1 + ret).prod() ** (252/(len(ret)+1)) - 1
     
@@ -257,5 +251,4 @@ class Util(Client):
     def Information_Ratio(self, rets):
         diff = rets.Portfolio - rets.Benchmark
         return diff.mean() / diff.std()
-    
     

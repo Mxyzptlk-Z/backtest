@@ -1,0 +1,530 @@
+2023-01-05 00:00:00
+
+Placing orders (long stocks):
+['002179.SZ', '002405.SZ', '002625.SZ', '002439.SZ']
+
+Number of shares respectively:
+[ 6600 21200 11400  5100]
+
+buy commission cost: 297.39
+
+available cash: 8403.49
+
+sell commission cost: 1232.16
+
+weekly pnl: -45015.67
+
+
+2023-01-12 00:00:00
+
+Placing orders (long stocks):
+['002195.SZ', '002925.SZ', '002738.SZ', '002812.SZ']
+
+Number of shares respectively:
+[135200  20500   1600    400]
+
+buy commission cost: 282.57
+
+available cash: 12803.58
+
+sell commission cost: 1214.03
+
+weekly pnl: -9527.78
+
+
+2023-01-19 00:00:00
+
+Placing orders (long stocks):
+['002384.SZ', '002938.SZ', '002939.SZ', '002460.SZ']
+
+Number of shares respectively:
+[ 1800 10700 55800   900]
+
+buy commission cost: 282.45
+
+available cash: 3673.97
+
+sell commission cost: 1234.34
+
+weekly pnl: 6475.07
+
+
+Portfolio reallocation day is holiday, rebalancing deferred to next trading day.
+
+2023-01-30 00:00:00
+
+Placing orders (long stocks):
+['002236.SZ', '002773.SZ', '002573.SZ', '002268.SZ']
+
+Number of shares respectively:
+[30200 13800 38900  2700]
+
+buy commission cost: 284.35
+
+available cash: 3817.50
+
+sell commission cost: 1251.99
+
+weekly pnl: 13699.89
+
+
+2023-02-02 00:00:00
+
+Placing orders (long stocks):
+['002299.SZ', '002573.SZ', '002444.SZ', '002281.SZ']
+
+Number of shares respectively:
+[ 5500 27000  3600 33100]
+
+buy commission cost: 241.09
+
+available cash: 2987.20
+
+sell commission cost: 1301.80
+
+weekly pnl: 37437.88
+
+
+2023-02-09 00:00:00
+
+Placing orders (long stocks):
+['002602.SZ', '002281.SZ', '002019.SZ', '002008.SZ']
+
+Number of shares respectively:
+[69200 18200 11800  6500]
+
+buy commission cost: 195.19
+
+available cash: 3506.29
+
+sell commission cost: 1459.22
+
+weekly pnl: 121456.66
+
+
+2023-02-16 00:00:00
+
+Placing orders (long stocks):
+['002745.SZ', '002078.SZ', '002185.SZ', '002568.SZ']
+
+Number of shares respectively:
+[39200 31900 26300  2100]
+
+buy commission cost: 335.97
+
+available cash: 4295.12
+
+sell commission cost: 1440.68
+
+weekly pnl: -13458.62
+
+
+2023-02-23 00:00:00
+
+Placing orders (long stocks):
+['002563.SZ', '002603.SZ', '002589.SZ', '002705.SZ']
+
+Number of shares respectively:
+[117900    500  30300  13000]
+
+buy commission cost: 331.93
+
+available cash: 4313.88
+
+sell commission cost: 1433.71
+
+weekly pnl: -5332.27
+
+
+2023-03-02 00:00:00
+
+Placing orders (long stocks):
+['002563.SZ', '002223.SZ', '002032.SZ', '002311.SZ']
+
+Number of shares respectively:
+[65400  1600  6300  4600]
+
+buy commission cost: 210.31
+
+available cash: 9423.26
+
+sell commission cost: 1408.55
+
+weekly pnl: -14220.46
+
+
+2023-03-09 00:00:00
+
+Placing orders (long stocks):
+['003816.SZ', '002268.SZ', '002129.SZ', '002223.SZ']
+
+Number of shares respectively:
+[346900    500   1300    600]
+
+buy commission cost: 319.51
+
+available cash: 6765.76
+
+sell commission cost: 1452.31
+
+weekly pnl: 30960.74
+
+
+2023-03-16 00:00:00
+
+Placing orders (long stocks):
+['002371.SZ', '002439.SZ', '003816.SZ', '002409.SZ']
+
+Number of shares respectively:
+[   100   2400 306700   1600]
+
+buy commission cost: 58.56
+
+available cash: 25433.21
+
+sell commission cost: 1438.28
+
+weekly pnl: 7890.47
+
+
+2023-03-23 00:00:00
+
+Placing orders (long stocks):
+['002051.SZ', '002399.SZ', '002841.SZ', '002236.SZ']
+
+Number of shares respectively:
+[ 9300 56200  1500  6000]
+
+buy commission cost: 337.41
+
+available cash: 5320.05
+
+sell commission cost: 1457.51
+
+weekly pnl: -5339.39
+
+
+2023-03-30 00:00:00
+
+Placing orders (long stocks):
+['002065.SZ', '002690.SZ', '002010.SZ', '002602.SZ']
+
+Number of shares respectively:
+[31800 12400 48500 35300]
+
+buy commission cost: 337.07
+
+available cash: 1108.12
+
+sell commission cost: 1556.50
+
+weekly pnl: 71831.08
+
+
+Portfolio reallocation day is holiday, rebalancing deferred to next trading day.
+
+2023-04-06 00:00:00
+
+Placing orders (long stocks):
+['002056.SZ', '002049.SZ', '002602.SZ', '002085.SZ']
+
+Number of shares respectively:
+[14400   500 41400 91300]
+
+buy commission cost: 276.08
+
+available cash: 7184.61
+
+sell commission cost: 1576.46
+
+weekly pnl: 21414.53
+
+
+2023-04-13 00:00:00
+
+Placing orders (long stocks):
+['002007.SZ', '002038.SZ', '002025.SZ', '002244.SZ']
+
+Number of shares respectively:
+[ 9800 73100  3100 12300]
+
+buy commission cost: 365.01
+
+available cash: 1216.48
+
+sell commission cost: 1570.10
+
+weekly pnl: -10853.77
+
+
+2023-04-20 00:00:00
+
+Placing orders (long stocks):
+['002738.SZ', '002705.SZ', '002532.SZ', '002601.SZ']
+
+Number of shares respectively:
+[ 3200 23200 17400 19500]
+
+buy commission cost: 360.50
+
+available cash: 5388.72
+
+sell commission cost: 1437.46
+
+weekly pnl: -97732.11
+
+
+2023-04-27 00:00:00
+
+Placing orders (long stocks):
+['002901.SZ', '002966.SZ', '002444.SZ', '002958.SZ']
+
+Number of shares respectively:
+[  2800  23800   3500 261700]
+
+buy commission cost: 331.65
+
+available cash: 3853.08
+
+sell commission cost: 1447.51
+
+weekly pnl: 6185.30
+
+
+Portfolio reallocation day is holiday, rebalancing deferred to next trading day.
+
+2023-05-04 00:00:00
+
+Placing orders (long stocks):
+['002625.SZ', '002557.SZ', '002038.SZ', '002563.SZ']
+
+Number of shares respectively:
+[ 7300  6900 35700 51600]
+
+buy commission cost: 333.91
+
+available cash: 2493.37
+
+sell commission cost: 1400.20
+
+weekly pnl: -37700.41
+
+
+2023-05-11 00:00:00
+
+Placing orders (long stocks):
+['002573.SZ', '002266.SZ', '002958.SZ', '002673.SZ']
+
+Number of shares respectively:
+[ 22900  57600 190700  20000]
+
+buy commission cost: 323.23
+
+available cash: 423.21
+
+sell commission cost: 1386.78
+
+weekly pnl: -12378.74
+
+
+2023-05-18 00:00:00
+
+Placing orders (long stocks):
+['002531.SZ', '002202.SZ', '002709.SZ', '002266.SZ']
+
+Number of shares respectively:
+[  2400  37100    900 136300]
+
+buy commission cost: 149.54
+
+available cash: 1486.48
+
+sell commission cost: 1347.71
+
+weekly pnl: -28951.65
+
+
+2023-05-25 00:00:00
+
+Placing orders (long stocks):
+['002180.SZ', '002273.SZ', '002925.SZ', '002407.SZ']
+
+Number of shares respectively:
+[ 6900 27800 12600  9000]
+
+buy commission cost: 310.19
+
+available cash: 2563.19
+
+dividend incident occurs for 002925.SZ on 2023-05-31 00:00:00
+
+rebalancing account holdings:
+[ 6900 27800 12600  9000]
+
+sell commission cost: 1327.67
+
+weekly pnl: -14321.44
+
+
+2023-06-01 00:00:00
+
+Placing orders (long stocks):
+['002938.SZ', '002085.SZ', '002008.SZ', '002925.SZ']
+
+Number of shares respectively:
+[ 4100 51500 11300 16000]
+
+buy commission cost: 213.62
+
+available cash: 2223.71
+
+sell commission cost: 1312.84
+
+weekly pnl: -11733.45
+
+
+2023-06-08 00:00:00
+
+Placing orders (long stocks):
+['002075.SZ', '002271.SZ', '002065.SZ', '002152.SZ']
+
+Number of shares respectively:
+[156800   2800  11200  17800]
+
+buy commission cost: 302.47
+
+available cash: 2258.59
+
+dividend incident occurs for 002152.SZ on 2023-06-09 00:00:00
+
+rebalancing account holdings:
+[156800   2800  11200  17800]
+
+sell commission cost: 1344.34
+
+weekly pnl: 24232.58
+
+
+2023-06-15 00:00:00
+
+Placing orders (long stocks):
+['002372.SZ', '002714.SZ', '002572.SZ', '002299.SZ']
+
+Number of shares respectively:
+[ 6900 10500  7100 16800]
+
+buy commission cost: 308.96
+
+available cash: 4843.52
+
+sell commission cost: 1324.03
+
+weekly pnl: -13015.96
+
+
+2023-06-26 00:00:00
+
+Placing orders (long stocks):
+['002690.SZ', '002920.SZ', '002050.SZ', '002008.SZ']
+
+Number of shares respectively:
+[12800  1000  8100 10700]
+
+buy commission cost: 305.07
+
+available cash: 4800.75
+
+sell commission cost: 1285.42
+
+weekly pnl: -29700.17
+
+
+2023-06-29 00:00:00
+
+Placing orders (long stocks):
+['003035.SZ', '002812.SZ', '002179.SZ', '002459.SZ']
+
+Number of shares respectively:
+[24700  1000 14600  1800]
+
+buy commission cost: 295.83
+
+available cash: 5909.89
+
+sell commission cost: 1287.52
+
+weekly pnl: 2723.05
+
+
+2023-07-06 00:00:00
+
+Placing orders (long stocks):
+['002625.SZ', '002414.SZ', '002266.SZ', '002179.SZ']
+
+Number of shares respectively:
+[  4400  15700 137200   5000]
+
+buy commission cost: 229.67
+
+available cash: 4753.70
+
+sell commission cost: 1298.64
+
+weekly pnl: 7384.69
+
+
+2023-07-13 00:00:00
+
+Placing orders (long stocks):
+['002078.SZ', '002028.SZ', '002673.SZ', '002736.SZ']
+
+Number of shares respectively:
+[18700  3600 49800 32100]
+
+buy commission cost: 299.09
+
+available cash: 5152.29
+
+sell commission cost: 1317.63
+
+weekly pnl: 14985.60
+
+
+2023-07-20 00:00:00
+
+Placing orders (long stocks):
+['002939.SZ', '002185.SZ', '002120.SZ', '002916.SZ']
+
+Number of shares respectively:
+[82200 15700 13200   600]
+
+buy commission cost: 304.00
+
+available cash: 3751.33
+
+dividend incident occurs for 002939.SZ on 2023-07-24 00:00:00
+
+rebalancing account holdings:
+[82200 15700 13200   600]
+
+sell commission cost: 1329.05
+
+weekly pnl: 7369.73
+
+
+2023-07-27 00:00:00
+
+Placing orders (long stocks):
+['002120.SZ', '002081.SZ', '002791.SZ', '002958.SZ']
+
+Number of shares respectively:
+[  5700  32800    300 281500]
+
+commission cost: 289.75
+
+available cash: 1919.39
+
+total pnl: 24765.39
+
+
+

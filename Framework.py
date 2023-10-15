@@ -3,211 +3,216 @@ import numpy as np
 import datetime
 import warnings
 import logging
-import scipy.optimize as sco
-import statsmodels.api as sm
+import quantstats as qs
 import matplotlib.pyplot as plt
 from tabulate import tabulate
-from dateutil.relativedelta import relativedelta
+from tqdm import tqdm
 from AlphaBase import AlphaBase
+from Optimize import PortOpt
 warnings.filterwarnings('ignore')
 
 
-class Framework(AlphaBase):
+class Framework(AlphaBase, PortOpt):
     
-    def __init__(self, index_code, start_date, end_date, max_stocks, date_rule):
+    def __init__(self, index_code, start_date, end_date, max_stocks, date_rule, freq):
         """
         This method initializes the parameters entering the framework.
         """
-        super().__init__(index_code, start_date, end_date, max_stocks, date_rule)
+        AlphaBase.__init__(self, index_code, start_date, end_date)
+        PortOpt.__init__(self, index_code, start_date, end_date, max_stocks)
+        self.date_rule = date_rule
+        self.freq = freq
     
     def __repr__(self):
         """
         This method returns a string representation of a Framework object.
         """
-        return 'Backtest_Framework, index_code=%s, start_date=%s, end_date=%s, max_stocks=%s, week_rule=%s' % (self.index_code, self.start_date, self.end_date, self.max_stocks, self.date_rule)
+        return 'Backtest_Framework, index_code=%s, start_date=%s, end_date=%s, max_stocks=%s, date_rule=%s' % (self.index_code, self.start_date, self.end_date, self.max_stocks, self.date_rule)
     
     def port_performance(self):
         """
         This method is the primary backtest framework cerebro.
         """
         score, index, component, dividend = self.factor_mining()
-        # score, index, component, dividend = self.apply_alpha()
+        timedelta = self.period_delta(self.freq)
+        ONE_DAY = datetime.timedelta(days=1)
         self.log()
         
         # adjusted price for dividend
-        real_close = pd.DataFrame({tic: data['close'] for tic, data in component.items()}).fillna(method = 'bfill')
-        hfq_close = pd.DataFrame({tic: data['hfq_close'] for tic, data in component.items()}).fillna(method = 'bfill')
+        real_open = pd.DataFrame({tic: data['open'] for tic, data in component.items()}).fillna(method='bfill')
+        real_close = pd.DataFrame({tic: data['close'] for tic, data in component.items()}).fillna(method='bfill')
+        hfq_open = pd.DataFrame({tic: data['hfq_open'] for tic, data in component.items()}).fillna(method='bfill')
+        hfq_close = pd.DataFrame({tic: data['hfq_close'] for tic, data in component.items()}).fillna(method='bfill')
+
         rets = hfq_close.pct_change()
         mkt_rets = index['close'].pct_change()
-        weekly_score = score.resample(self.date_rule).mean()
+        period_score = score.resample(self.date_rule).mean()
         
         order_target = []
-        for i in range(len(weekly_score)):
-            order_target.append(weekly_score.iloc[i,:].sort_values(ascending=False)[0:self.max_stocks].index)
+        for i in range(len(period_score)):
+            order_target.append(period_score.iloc[i,:].sort_values(ascending=False).index[0:self.max_stocks] if not period_score.iloc[i,:].dropna().empty else order_target[i-1])
         
-        # Portfolio optimization
-        
-        def gen_single_index(stock, market):
-            y = stock.dropna()
-            X = market.dropna()
-            X = sm.add_constant(X)
-            est = sm.OLS(y,X).fit()
-            beta = est.params.loc['close']
-            beta = np.array(beta).reshape(-1,1)
-            resid_var = (y - np.array(est.predict(X))).var()
-            
-            mkt_var = market.var()
-            sgl_idx = mkt_var * np.dot(beta, beta.T) + np.diag(resid_var)
-            return sgl_idx
-        
-        cons = ({'type':'eq','fun': lambda x: np.sum(x) - 1})
-        bnds = tuple((0, 1) for x in range(self.max_stocks))
-        eweights = np.array(self.max_stocks * [1./self.max_stocks])
-        
-        # total_capital = self.init_capital
-        # last_total_capital = self.init_capital
         last_day_value = self.init_capital
-        last_week_value = self.init_capital
+        last_period_value = self.init_capital
         port_rets = np.array(())
         account_rets = []
         dates = []
-        w = np.zeros((len(order_target)-1, self.max_stocks))
+        w = np.zeros((len(order_target), self.max_stocks))
+        total_order = (len(order_target) - 1) * self.max_stocks
+        win = 0
         
-        for i in range(len(order_target) - 1):
+        for i in tqdm(range(len(order_target))):
+                
+            holdings = order_target[i]
+            calc_date = period_score.index[i]
+            shift_date = self.next_trade_day(calc_date)
+            period_start = calc_date + ONE_DAY
+            period_end = calc_date + timedelta if i != len(order_target) - 2 else self.end_date
 
-            logging.info(self.next_business_day([weekly_score.index[i]])[0])
-            logging.info('Placing orders (long stocks):\n%s', order_target[i].tolist())
+            target_rets = rets[holdings]
+            target_real_open = real_open[holdings]
+            target_real_close = real_close[holdings]
+            target_hfq_open = hfq_open[holdings]
+            target_hfq_close = hfq_close[holdings]
 
-            target_rets = rets[order_target[i]]
-            real_price = real_close[order_target[i]]
+            out_of_sample = target_rets[period_start : period_end]
+            if out_of_sample.empty:
+                logging.info(calc_date + ONE_DAY)
+                logging.info('Whole period is holiday.')
+                continue
+
+            # end_date isn't last period shift date
+            if i == len(order_target) - 1 and calc_date > datetime.datetime.strptime(self.end_date,'%Y%m%d'):
+                print('Warnings: Not coincide with date_rule for the last holding period.')
+                break
+
+            if self.exist_holiday_except_weekend(calc_date, shift_date):
+                logging.info('Portfolio reallocation day is holiday, rebalancing deferred to next trading day.')
+
+            logging.info(shift_date)
+            logging.info('Placing orders (long stocks):\n%s', holdings.tolist())
+
+            # for covariance matrix estimation
+            in_sample = target_rets[calc_date - datetime.timedelta(days=90) : calc_date]
+            mkt_in_sample = mkt_rets[calc_date - datetime.timedelta(days=90) : calc_date]
+            w[i] = self.res(in_sample, mkt_in_sample)
+
+            # deal with last period shift date
+            if i == len(order_target) - 1 and calc_date == datetime.datetime.strptime(self.end_date,'%Y%m%d'):
+                break
             
-            # Covariance matrix estimation
-            in_sample = target_rets[weekly_score.index[i] - datetime.timedelta(days=90) : weekly_score.index[i]]
-            mkt_in_sample = mkt_rets[weekly_score.index[i] - datetime.timedelta(days=90) : weekly_score.index[i]]
-            
-            cov = 1/3 * in_sample.cov() + 1/3 * np.diag(in_sample.var().tolist()) + 1/3 * gen_single_index(in_sample, mkt_in_sample)
-            
-            def min_func_sharpe(weights):
-                return - np.sum(in_sample.mean() * weights) * 252 + 20 * np.sqrt(np.dot(weights.T, np.dot(cov * 252, weights)))
-            
-            opts = sco.minimize(min_func_sharpe, eweights, method='SLSQP', bounds=bnds, constraints=cons)
-            w[i] = opts['x']
-            
-            # resample by week so +7
-            # out_of_sample = target_rets[weekly_score.index[i] + datetime.timedelta(days=1) : weekly_score.index[i] + datetime.timedelta(days=7)]
-            # ext_real_price = real_price[weekly_score.index[i] : weekly_score.index[i] + datetime.timedelta(days=7)]
             # if wish to change to other (monthly, quarterly or yearly) frequency, change params in relativedelta
-            out_of_sample = target_rets[weekly_score.index[i] + datetime.timedelta(days=1) : weekly_score.index[i] + relativedelta(weeks=1)]
-            ext_real_price = real_price[weekly_score.index[i] : weekly_score.index[i] + relativedelta(weeks=1)]
-            
-            # num_shares = ((total_capital * w[i] / ext_real_price.iloc[0]) / 100).astype('int')
-            num_shares = ((last_week_value * w[i] / ext_real_price.iloc[0]) / 100).astype('int')
-            # due to the characteristic of A share, if num_shares < 1, dump the stock
+            period_real_close = target_real_close[period_start : period_end]
+            period_hfq_close = target_hfq_close[period_start : period_end]
+            real_order_price = target_real_open.loc[shift_date]
+            hfq_order_price = target_hfq_open.loc[shift_date]
+
+            # due to suspend incidents, some order prices might be missing 
+            num_shares = ((last_period_value * w[i] / real_order_price) / 100).astype('int')
+            # the characteristic of A share, if num_shares < 1, dump the stock
             num_shares[num_shares<1] = 0
             num_shares *= 100
             logging.info('Number of shares respectively:\n%s', np.array(num_shares))
+
             # apply slippage
-            # slippage_cost = (num_shares * ext_real_price.iloc[0]).sum() * slippage
-            price_with_slippage = self.apply_slippage(ext_real_price.iloc[0], self.slippage)
-            total_position = (num_shares * price_with_slippage).sum()
+            price_with_slippage = self.apply_slippage(real_order_price, self.slippage, slippage_type='byRate')
+            begin_total_position = (num_shares * price_with_slippage).sum()
+
             # calculate commission
-            commission_cost = total_position * self.commission
-            logging.info('commission cost: %.2f', commission_cost)
+            # adjust commission for continuous holding
+            if i != 0:
+                last_period_holdings = order_target[i-1]
+                ct_hold = list(set(holdings).intersection(set(last_period_holdings)))
+                indicator = list(map(lambda x: x not in ct_hold, holdings))
+                buy_commission = (num_shares * price_with_slippage * indicator).sum() * self.commission
+            else:
+                buy_commission = begin_total_position * self.commission
+            logging.info('buy commission cost: %.2f', buy_commission)
+
             # calculate transaction cost
-            # transaction_cost = slippage_cost + commission_cost
-            # avail_cash = max(total_capital - total_position - commission_cost, 0)
-            avail_cash = max(last_week_value - total_position - commission_cost, 0)
+            avail_cash = max(last_period_value - begin_total_position - buy_commission, 0)
             logging.info('available cash: %.2f', avail_cash)
+
+            hfq_position_cost = self.apply_slippage(hfq_order_price, self.slippage, slippage_type='byRate') * (1 + self.commission)
 
             for date in out_of_sample.index:
                 for j in range(len(out_of_sample.columns)):
                     stock = out_of_sample.columns[j]
                     info = dividend[stock]
                     if date in info['ex_date'].tolist():
-                        num_shares[j] *= (1 + float(info[info['ex_date']==date]['stk_div']))
-                        avail_cash += float(info[info['ex_date']==date]['cash_div'])
+                        # sometimes there exists multiple indices for a single date
+                        # first cash dividend then stock dividend
+                        avail_cash += np.array(info[info['ex_date']==date]['cash_div'])[0] * num_shares[j]
+                        num_shares[j] *= (1 + np.array(info[info['ex_date']==date]['stk_div'])[0])
                         logging.info('dividend incident occurs for %s on %s', stock, date)
                         logging.info('rebalancing account holdings:\n%s', np.array(num_shares))
                     else:
                         pass
                     
                     if out_of_sample.loc[date, stock] <= self.lower_bound:
-                        avail_cash += num_shares[j] * ext_real_price.loc[date, stock]
+                        avail_cash += num_shares[j] * period_real_close.loc[date, stock]
+                        # deals with win rate at stop-loss point
+                        if period_hfq_close.loc[date, stock] > hfq_position_cost[j]:
+                            win += 1
                         num_shares[j] = 0
                         logging.info('stop-loss point occurs for %s on %s', stock, date)
                         logging.info('closing long position:\n%s', np.array(num_shares))
                     elif out_of_sample.loc[date, stock] >= self.upper_bound:
-                        avail_cash += num_shares[i] * ext_real_price.loc[date, stock]
+                        avail_cash += num_shares[j] * period_real_close.loc[date, stock]
+                        if period_hfq_close.loc[date, stock] > hfq_position_cost[j]:
+                            win += 1
                         num_shares[j] = 0
                         logging.info('stop-profit point occurs for %s on %s', stock, date)
                         logging.info('closing long position:\n%s', np.array(num_shares))
                     else:
                         pass
-
-                daily_account_value = (num_shares * ext_real_price.loc[date]).sum() + avail_cash
-                daily_pnl = daily_account_value / last_day_value - 1
-                account_rets.append(daily_pnl)
-                last_day_value = daily_account_value
+                
                 dates.append(date)
-            weekly_account_value = (num_shares * ext_real_price.loc[date]).sum() + avail_cash
-            weekly_pnl = weekly_account_value - last_week_value
-            last_week_value = weekly_account_value
-            logging.info('weekly pnl: %.2f\n', weekly_pnl)
-
-            # # Account daily return
-            # daily_holding_value = num_shares * ext_real_price.iloc[0]  # bin shift day
-            # share_weight = daily_holding_value / daily_holding_value.sum()
-            # ex_cost_ret = out_of_sample.copy()
-            # if ex_cost_ret.empty:
-            #     pass
-            # else:
-            #     ex_cost_ret.iloc[0] = (ext_real_price.iloc[1] - price_with_slippage) / price_with_slippage - self.commission
-            # ex_cost_ret = self.pnl_lim(ex_cost_ret)
-            # account_rets = account_rets.append((share_weight * ex_cost_ret).sum(axis=1))
-
-            # # Account weekly PnL
-            # filter_price = self.loss_lim(ext_real_price, out_of_sample)
-            # holding_period_value = (num_shares * filter_price.iloc[-1]).sum()
-            # total_capital = holding_period_value + avail_cash
-            # weekly_pnl = total_capital - last_total_capital
-            # logging.info('weekly pnl: %.2f\n', weekly_pnl)
-            # last_total_capital = total_capital
+                if date != out_of_sample.index[-1]:
+                    daily_account_value = (num_shares * period_real_close.loc[date]).sum() + avail_cash
+                    daily_pnl = daily_account_value / last_day_value - 1
+                    account_rets.append(daily_pnl)
+                    last_day_value = daily_account_value
+                else:
+                    # if last day of holding period, deal with sell commission
+                    end_total_position = (num_shares * period_real_close.loc[date]).sum()
+                    sell_commission = end_total_position * (self.commission + self.stamp_duty)
+                    logging.info('sell commission cost: %.2f', sell_commission)
+                    daily_account_value = end_total_position + avail_cash - sell_commission
+                    daily_pnl = daily_account_value / last_day_value - 1
+                    account_rets.append(daily_pnl)
+                    last_day_value = daily_account_value
+            period_account_value = end_total_position + avail_cash - sell_commission
+            period_pnl = period_account_value - last_period_value
+            last_period_value = period_account_value
+            logging.info('period pnl: %.2f\n', period_pnl)
+            win += (period_hfq_close.loc[date] > hfq_position_cost).sum()
             
             # Theoretical daily return
             # Set loss/profit limit for strategy, replace the out_of_sample return after the certain date by 0
             filter_ret = self.pnl_lim(out_of_sample)
             port_rets = np.append(port_rets, np.dot(filter_ret, w[i].T))
         
-        # total_pnl = total_capital - self.init_capital  # it's larger because it includes account available cash
-        # logging.info('total pnl: %.2f\n\n', total_pnl)
-        total_pnl = weekly_account_value - self.init_capital
+        total_pnl = period_account_value - self.init_capital
         logging.info('total pnl: %.2f\n\n', total_pnl)
         port_ret = pd.DataFrame({'Portfolio': port_rets, 'Account': account_rets, 'Benchmark': mkt_rets[dates]}, index = dates)
-        
-        # win rate
-        weekly_ret = hfq_close.resample(self.date_rule).last() / hfq_close.resample(self.date_rule).last().shift(1) - 1
-        
-        total_order = (len(order_target) - 1) * 5
-        win = 0
-        for i in range(len(order_target)-1):
-            num = (weekly_ret.loc[weekly_score.index[i+1], order_target[i]] > 0).sum()
-            win += num
         win_rate = win / total_order
-        
+
         # Retrieve order information
         order_history = pd.DataFrame()
-        adj_date = self.next_business_day(weekly_score.index)
+        adj_date = self.next_trade_dates(period_score.index)
         for order, weight, date in zip(order_target, w, adj_date):
-            weekly_order = pd.DataFrame()
-            weekly_order['date'] = [date] * len(order)
-            weekly_order['stock'] = order
-            weekly_order['weight'] = weight
-            order_history = order_history.append(weekly_order)
-        order_history.set_index(['date','stock'], inplace=True)
+            period_order = pd.DataFrame()
+            period_order['date'] = [date] * len(order)
+            period_order['stock'] = order
+            period_order['weight'] = weight
+            order_history = pd.concat([order_history, period_order])
+        
+        order_history.set_index(['date', 'stock'], inplace=True)
     
         return port_ret, order_history, win_rate
     
-    def result_analysis(self):
+    def result_analysis(self, csv = False, html = False):
         """
         This method generates plots and major assessment indicators of a strategy..
         """
@@ -242,13 +247,18 @@ class Framework(AlphaBase):
                  'Win Rate': [round(win_rate, 4)],
                  'Max Drawdown': [round(max_drawdown, 4)]}
         
-        # order_history.to_csv('stock orders.csv')
+        if csv is True:
+            order_history.to_csv('stock orders.csv')
+
+        if html is True:
+            qs.reports.html(port_ret['Account'], benchmark=port_ret['Benchmark'], output='stats.html', title='Portfolio Performance')
+        
         print(tabulate(table, headers='keys', tablefmt='grid'))
     
     
 if __name__ == '__main__':
     
-    alpha = Framework('399300.SZ', '20230101', '20230424', 5, 4)
-    alpha.result_analysis()
+    alpha = Framework('000905.SH', '20230101', '20231014', 5, 'W-WED', 'W')
+    alpha.result_analysis(csv = False, html = False)
     
     

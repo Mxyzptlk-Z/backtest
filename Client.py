@@ -4,13 +4,14 @@ import logging
 
 class Client:
 
-    def __init__(self, init_capital = 1e6, slippage = 0.001 , commission = 0.0015, ub = np.Inf, lb = -0.08):
+    def __init__(self, init_capital = 1e6, slippage = 0.0001 , commission = 0.0003, stamp_duty = 0.001, ub = np.Inf, lb = -0.08):
         """
         This method initializes the parameters entering the Client object.
         """
         self.init_capital = init_capital
         self.slippage = slippage
-        self.commission = commission
+        self.commission = commission  # bilateral commission
+        self.stamp_duty = stamp_duty  # default 0.1%
         self.upper_bound = ub
         self.lower_bound = lb
 
@@ -20,12 +21,18 @@ class Client:
         """
         return 'Client_Account, init_capital=%f, slippage=%f, commission=%f' % (self.init_capital, self.slippage, self.commission)
     
-    def apply_slippage(self, price, pct_slippage):
+    def apply_slippage(self, price, pct_slippage, slippage_type):
         """
-        This method defines the rate of slippage during transaction.
+        This method defines the rate and type of slippage during transaction.
+        Available slippage type: 'byRate' and 'byVolume'
         """
-        # return price * (1 + np.random.uniform(low=-pct_slippage, high=pct_slippage))
-        return price * (1 + pct_slippage)
+        if slippage_type == 'byRate':
+            price_with_slippage = price * (1 + pct_slippage)
+        elif slippage_type == 'byVolume':
+            price_with_slippage = price + pct_slippage
+        else:
+            print('Please indicate which slippage type.')
+        return price_with_slippage
 
     def loss_lim(self, price, ret):
         """
