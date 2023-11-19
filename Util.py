@@ -23,7 +23,7 @@ class Util(Client):
         self.PATH = './data cache'
         self.IDX_PATH = os.path.join(self.PATH, index_code.replace('.', '_'))
 
-        token = 'c336245e66e2882632285493a7d0ebc23a2fbb7392b74e4b3855a222'
+        token = 'your tushare token XXX'
         ts.set_token(token)
         self.pro = ts.pro_api()
     
